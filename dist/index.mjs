@@ -2,40 +2,61 @@
 import {
   callChatApi,
   generateId as generateIdFunc,
-  processChatStream
+  processChatStream,
 } from "@ai-sdk/ui-utils";
 import { useSWR } from "sswr";
 import { derived, get, writable } from "svelte/store";
-var getStreamedResponse = async (api, chatRequest, mutate, mutateStreamData, existingData, extraMetadata, previousMessages, abortControllerRef, generateId2, streamProtocol, onFinish, onResponse, onToolCall, sendExtraMessageFields, fetch2, keepLastMessageOnError) => {
+var getStreamedResponse = async (
+  api,
+  chatRequest,
+  mutate,
+  mutateStreamData,
+  existingData,
+  extraMetadata,
+  previousMessages,
+  abortControllerRef,
+  generateId2,
+  streamProtocol,
+  onFinish,
+  onResponse,
+  onToolCall,
+  sendExtraMessageFields,
+  fetch2,
+  keepLastMessageOnError
+) => {
   mutate(chatRequest.messages);
-  
-  const constructedMessagesPayload = sendExtraMessageFields ? chatRequest.messages : chatRequest.messages.map(
-    ({
-      role,
-      content,
-      name,
-      data,
-      annotations,
-      function_call,
-      tool_calls,
-      tool_call_id,
-      toolInvocations,
-      experimental_attachments
-    }) => ({
-      role,
-      content,
-      ...name !== void 0 && { name },
-      ...data !== void 0 && { data },
-      ...annotations !== void 0 && { annotations },
-      ...toolInvocations !== void 0 && { toolInvocations },
-      // outdated function/tool call handling (TODO deprecate):
-      tool_call_id,
-      ...function_call !== void 0 && { function_call },
-      ...tool_calls !== void 0 && { tool_calls },
-      ...experimental_attachments !== void 0 && {experimental_attachments}
-    })
-  );
-  
+
+  const constructedMessagesPayload = sendExtraMessageFields
+    ? chatRequest.messages
+    : chatRequest.messages.map(
+        ({
+          role,
+          content,
+          name,
+          data,
+          annotations,
+          function_call,
+          tool_calls,
+          tool_call_id,
+          toolInvocations,
+          experimental_attachments,
+        }) => ({
+          role,
+          content,
+          ...(name !== void 0 && { name }),
+          ...(data !== void 0 && { data }),
+          ...(annotations !== void 0 && { annotations }),
+          ...(toolInvocations !== void 0 && { toolInvocations }),
+          // outdated function/tool call handling (TODO deprecate):
+          tool_call_id,
+          ...(function_call !== void 0 && { function_call }),
+          ...(tool_calls !== void 0 && { tool_calls }),
+          ...(experimental_attachments !== void 0 && {
+            experimental_attachments,
+          }),
+        })
+      );
+
   return await callChatApi({
     api,
     body: {
@@ -43,24 +64,24 @@ var getStreamedResponse = async (api, chatRequest, mutate, mutateStreamData, exi
       data: chatRequest.data,
       ...extraMetadata.body,
       ...chatRequest.body,
-      ...chatRequest.functions !== void 0 && {
-        functions: chatRequest.functions
-      },
-      ...chatRequest.function_call !== void 0 && {
-        function_call: chatRequest.function_call
-      },
-      ...chatRequest.tools !== void 0 && {
-        tools: chatRequest.tools
-      },
-      ...chatRequest.tool_choice !== void 0 && {
-        tool_choice: chatRequest.tool_choice
-      }
+      ...(chatRequest.functions !== void 0 && {
+        functions: chatRequest.functions,
+      }),
+      ...(chatRequest.function_call !== void 0 && {
+        function_call: chatRequest.function_call,
+      }),
+      ...(chatRequest.tools !== void 0 && {
+        tools: chatRequest.tools,
+      }),
+      ...(chatRequest.tool_choice !== void 0 && {
+        tool_choice: chatRequest.tool_choice,
+      }),
     },
     streamProtocol,
     credentials: extraMetadata.credentials,
     headers: {
       ...extraMetadata.headers,
-      ...chatRequest.headers
+      ...chatRequest.headers,
     },
     abortController: () => abortControllerRef,
     restoreMessagesOnFailure() {
@@ -71,18 +92,25 @@ var getStreamedResponse = async (api, chatRequest, mutate, mutateStreamData, exi
     onResponse,
     onUpdate(merged, data) {
       mutate([...chatRequest.messages, ...merged]);
-      mutateStreamData([...existingData || [], ...data || []]);
+      mutateStreamData([...(existingData || []), ...(data || [])]);
     },
     onFinish,
     generateId: generateId2,
     onToolCall,
-    fetch: fetch2
+    fetch: fetch2,
   });
 };
 var uniqueId = 0;
 var store = {};
 function isAssistantMessageWithCompletedToolCalls(message) {
-  return message.role === "assistant" && message.toolInvocations && message.toolInvocations.length > 0 && message.toolInvocations.every((toolInvocation) => "result" in toolInvocation);
+  return (
+    message.role === "assistant" &&
+    message.toolInvocations &&
+    message.toolInvocations.length > 0 &&
+    message.toolInvocations.every(
+      (toolInvocation) => "result" in toolInvocation
+    )
+  );
 }
 function countTrailingAssistantMessages(messages) {
   let count = 0;
@@ -116,20 +144,22 @@ function useChat({
   fetch: fetch2,
   keepLastMessageOnError = false,
   maxToolRoundtrips = 0,
-  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1
+  maxSteps = maxToolRoundtrips != null ? maxToolRoundtrips + 1 : 1,
 } = {}) {
   if (streamMode) {
-    streamProtocol != null ? streamProtocol : streamProtocol = streamMode === "text" ? "text" : void 0;
+    streamProtocol != null
+      ? streamProtocol
+      : (streamProtocol = streamMode === "text" ? "text" : void 0);
   }
   const chatId = id || `chat-${uniqueId++}`;
   const key = `${api}|${chatId}`;
   const {
     data,
     mutate: originalMutate,
-    isLoading: isSWRLoading
+    isLoading: isSWRLoading,
   } = useSWR(key, {
     fetcher: () => store[key] || initialMessages,
-    fallbackData: initialMessages
+    fallbackData: initialMessages,
   });
   const streamData = writable(void 0);
   const loading = writable(false);
@@ -143,7 +173,7 @@ function useChat({
   const extraMetadata = {
     credentials,
     headers,
-    body
+    body,
   };
   const error = writable(void 0);
   async function triggerRequest(chatRequest) {
@@ -154,32 +184,33 @@ function useChat({
       loading.set(true);
       abortController = new AbortController();
       await processChatStream({
-        getStreamedResponse: () => getStreamedResponse(
-          api,
-          chatRequest,
-          mutate,
-          (data2) => {
-            streamData.set(data2);
-          },
-          get(streamData),
-          extraMetadata,
-          get(messages),
-          abortController,
-          generateId2,
-          streamProtocol,
-          onFinish,
-          onResponse,
-          onToolCall,
-          sendExtraMessageFields,
-          fetch2,
-          keepLastMessageOnError
-        ),
+        getStreamedResponse: () =>
+          getStreamedResponse(
+            api,
+            chatRequest,
+            mutate,
+            (data2) => {
+              streamData.set(data2);
+            },
+            get(streamData),
+            extraMetadata,
+            get(messages),
+            abortController,
+            generateId2,
+            streamProtocol,
+            onFinish,
+            onResponse,
+            onToolCall,
+            sendExtraMessageFields,
+            fetch2,
+            keepLastMessageOnError
+          ),
         experimental_onFunctionCall,
         experimental_onToolCall,
         updateChatRequest: (chatRequestParam) => {
           chatRequest = chatRequestParam;
         },
-        getCurrentMessages: () => get(messages)
+        getCurrentMessages: () => get(messages),
       });
       abortController = null;
     } catch (err) {
@@ -207,22 +238,30 @@ function useChat({
       await triggerRequest({ messages: newMessagesSnapshot });
     }
   }
-  const append = async (message, {
-    options,
-    functions,
-    function_call,
-    tools,
-    tool_choice,
-    data: data2,
-    headers: headers2,
-    body: body2
-  } = {}) => {
+  const append = async (
+    message,
+    {
+      options,
+      functions,
+      function_call,
+      tools,
+      tool_choice,
+      data: data2,
+      headers: headers2,
+      body: body2,
+    } = {}
+  ) => {
     if (!message.id) {
       message.id = generateId2();
     }
     const requestOptions = {
-      headers: headers2 != null ? headers2 : options == null ? void 0 : options.headers,
-      body: body2 != null ? body2 : options == null ? void 0 : options.body
+      headers:
+        headers2 != null
+          ? headers2
+          : options == null
+          ? void 0
+          : options.headers,
+      body: body2 != null ? body2 : options == null ? void 0 : options.body,
     };
     const chatRequest = {
       messages: get(messages).concat(message),
@@ -230,10 +269,10 @@ function useChat({
       headers: requestOptions.headers,
       body: requestOptions.body,
       data: data2,
-      ...functions !== void 0 && { functions },
-      ...function_call !== void 0 && { function_call },
-      ...tools !== void 0 && { tools },
-      ...tool_choice !== void 0 && { tool_choice }
+      ...(functions !== void 0 && { functions }),
+      ...(function_call !== void 0 && { function_call }),
+      ...(tools !== void 0 && { tools }),
+      ...(tool_choice !== void 0 && { tool_choice }),
     };
     return triggerRequest(chatRequest);
   };
@@ -245,14 +284,18 @@ function useChat({
     tool_choice,
     data: data2,
     headers: headers2,
-    body: body2
+    body: body2,
   } = {}) => {
     const messagesSnapshot = get(messages);
-    if (messagesSnapshot.length === 0)
-      return null;
+    if (messagesSnapshot.length === 0) return null;
     const requestOptions = {
-      headers: headers2 != null ? headers2 : options == null ? void 0 : options.headers,
-      body: body2 != null ? body2 : options == null ? void 0 : options.body
+      headers:
+        headers2 != null
+          ? headers2
+          : options == null
+          ? void 0
+          : options.headers,
+      body: body2 != null ? body2 : options == null ? void 0 : options.body,
     };
     const lastMessage = messagesSnapshot.at(-1);
     if ((lastMessage == null ? void 0 : lastMessage.role) === "assistant") {
@@ -262,10 +305,10 @@ function useChat({
         headers: requestOptions.headers,
         body: requestOptions.body,
         data: data2,
-        ...functions !== void 0 && { functions },
-        ...function_call !== void 0 && { function_call },
-        ...tools !== void 0 && { tools },
-        ...tool_choice !== void 0 && { tool_choice }
+        ...(functions !== void 0 && { functions }),
+        ...(function_call !== void 0 && { function_call }),
+        ...(tools !== void 0 && { tools }),
+        ...(tool_choice !== void 0 && { tool_choice }),
       };
       return triggerRequest(chatRequest2);
     }
@@ -274,7 +317,7 @@ function useChat({
       options: requestOptions,
       headers: requestOptions.headers,
       body: requestOptions.body,
-      data: data2
+      data: data2,
     };
     return triggerRequest(chatRequest);
   };
@@ -293,25 +336,39 @@ function useChat({
   const input = writable(initialInput);
   const handleSubmit = (event, options = {}) => {
     var _a, _b, _c, _d, _e;
-    (_a = event == null ? void 0 : event.preventDefault) == null ? void 0 : _a.call(event);
+    (_a = event == null ? void 0 : event.preventDefault) == null
+      ? void 0
+      : _a.call(event);
     const inputValue = get(input);
-    if (!inputValue && !options.allowEmptySubmit)
-      return;
+    if (!inputValue && !options.allowEmptySubmit) return;
     const requestOptions = {
-      headers: (_c = options.headers) != null ? _c : (_b = options.options) == null ? void 0 : _b.headers,
-      body: (_e = options.body) != null ? _e : (_d = options.options) == null ? void 0 : _d.body
+      headers:
+        (_c = options.headers) != null
+          ? _c
+          : (_b = options.options) == null
+          ? void 0
+          : _b.headers,
+      body:
+        (_e = options.body) != null
+          ? _e
+          : (_d = options.options) == null
+          ? void 0
+          : _d.body,
     };
     const chatRequest = {
-      messages: !inputValue && options.allowEmptySubmit ? get(messages) : get(messages).concat({
-        id: generateId2(),
-        content: inputValue,
-        role: "user",
-        createdAt: /* @__PURE__ */ new Date()
-      }),
+      messages:
+        !inputValue && options.allowEmptySubmit
+          ? get(messages)
+          : get(messages).concat({
+              id: generateId2(),
+              content: inputValue,
+              role: "user",
+              createdAt: /* @__PURE__ */ new Date(),
+            }),
       options: requestOptions,
       body: requestOptions.body,
       headers: requestOptions.headers,
-      data: options.data
+      data: options.data,
     };
     triggerRequest(chatRequest);
     input.set("");
@@ -322,27 +379,28 @@ function useChat({
       return $isSWRLoading || $loading;
     }
   );
-  const addToolResult = ({
-    toolCallId,
-    result
-  }) => {
+  const addToolResult = ({ toolCallId, result, options }) => {
     var _a;
     const messagesSnapshot = (_a = get(messages)) != null ? _a : [];
-    const updatedMessages = messagesSnapshot.map(
-      (message, index, arr) => (
-        // update the tool calls in the last assistant message:
-        index === arr.length - 1 && message.role === "assistant" && message.toolInvocations ? {
-          ...message,
-          toolInvocations: message.toolInvocations.map(
-            (toolInvocation) => toolInvocation.toolCallId === toolCallId ? { ...toolInvocation, result } : toolInvocation
-          )
-        } : message
-      )
+    const updatedMessages = messagesSnapshot.map((message, index, arr) =>
+      // update the tool calls in the last assistant message:
+      index === arr.length - 1 &&
+      message.role === "assistant" &&
+      message.toolInvocations
+        ? {
+            ...message,
+            toolInvocations: message.toolInvocations.map((toolInvocation) =>
+              toolInvocation.toolCallId === toolCallId
+                ? { ...toolInvocation, result }
+                : toolInvocation
+            ),
+          }
+        : message
     );
     messages.set(updatedMessages);
     const lastMessage = updatedMessages[updatedMessages.length - 1];
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      triggerRequest({ messages: updatedMessages });
+      triggerRequest({ messages: updatedMessages, ...options });
     }
   };
   return {
@@ -356,14 +414,18 @@ function useChat({
     handleSubmit,
     isLoading,
     data: streamData,
-    addToolResult
+    addToolResult,
   };
 }
 
 // src/use-completion.ts
 import { callCompletionApi } from "@ai-sdk/ui-utils";
 import { useSWR as useSWR2 } from "sswr";
-import { derived as derived2, get as get2, writable as writable2 } from "svelte/store";
+import {
+  derived as derived2,
+  get as get2,
+  writable as writable2,
+} from "svelte/store";
 var uniqueId2 = 0;
 var store2 = {};
 function useCompletion({
@@ -379,20 +441,22 @@ function useCompletion({
   onResponse,
   onFinish,
   onError,
-  fetch: fetch2
+  fetch: fetch2,
 } = {}) {
   if (streamMode) {
-    streamProtocol != null ? streamProtocol : streamProtocol = streamMode === "text" ? "text" : void 0;
+    streamProtocol != null
+      ? streamProtocol
+      : (streamProtocol = streamMode === "text" ? "text" : void 0);
   }
   const completionId = id || `completion-${uniqueId2++}`;
   const key = `${api}|${completionId}`;
   const {
     data,
     mutate: originalMutate,
-    isLoading: isSWRLoading
+    isLoading: isSWRLoading,
   } = useSWR2(key, {
     fetcher: () => store2[key] || initialCompletion,
-    fallbackData: initialCompletion
+    fallbackData: initialCompletion,
   });
   const streamData = writable2(void 0);
   const loading = writable2(false);
@@ -412,11 +476,11 @@ function useCompletion({
       credentials,
       headers: {
         ...headers,
-        ...options == null ? void 0 : options.headers
+        ...(options == null ? void 0 : options.headers),
       },
       body: {
         ...body,
-        ...options == null ? void 0 : options.body
+        ...(options == null ? void 0 : options.body),
       },
       streamProtocol,
       setCompletion: mutate,
@@ -429,9 +493,9 @@ function useCompletion({
       onFinish,
       onError,
       onData(data2) {
-        streamData.set([...existingData || [], ...data2 || []]);
+        streamData.set([...(existingData || []), ...(data2 || [])]);
       },
-      fetch: fetch2
+      fetch: fetch2,
     });
   };
   const stop = () => {
@@ -446,7 +510,9 @@ function useCompletion({
   const input = writable2(initialInput);
   const handleSubmit = (event) => {
     var _a;
-    (_a = event == null ? void 0 : event.preventDefault) == null ? void 0 : _a.call(event);
+    (_a = event == null ? void 0 : event.preventDefault) == null
+      ? void 0
+      : _a.call(event);
     const inputValue = get2(input);
     return inputValue ? complete(inputValue) : void 0;
   };
@@ -465,7 +531,7 @@ function useCompletion({
     input,
     handleSubmit,
     isLoading,
-    data: streamData
+    data: streamData,
   };
 }
 
@@ -483,10 +549,12 @@ function useAssistant({
   headers,
   body,
   onError,
-  fetch: fetch2
+  fetch: fetch2,
 }) {
   const threadIdStore = writable3(threadIdParam);
-  const key = `${api}|${threadIdParam != null ? threadIdParam : `completion-${uniqueId3++}`}`;
+  const key = `${api}|${
+    threadIdParam != null ? threadIdParam : `completion-${uniqueId3++}`
+  }`;
   const messages = writable3(store3[key] || []);
   const input = writable3("");
   const status = writable3("awaiting_message");
@@ -502,7 +570,7 @@ function useAssistant({
     abortController = new AbortController();
     mutateMessages([
       ...get3(messages),
-      { ...message, id: (_a = message.id) != null ? _a : generateId() }
+      { ...message, id: (_a = message.id) != null ? _a : generateId() },
     ]);
     input.set("");
     try {
@@ -515,15 +583,22 @@ function useAssistant({
         body: JSON.stringify({
           ...body,
           // always use user-provided threadId when available:
-          threadId: (_b = threadIdParam != null ? threadIdParam : get3(threadIdStore)) != null ? _b : null,
+          threadId:
+            (_b =
+              threadIdParam != null ? threadIdParam : get3(threadIdStore)) !=
+            null
+              ? _b
+              : null,
           message: message.content,
           // optional request data:
-          data: requestOptions == null ? void 0 : requestOptions.data
-        })
+          data: requestOptions == null ? void 0 : requestOptions.data,
+        }),
       });
       if (!response.ok) {
         throw new Error(
-          (_c = await response.text()) != null ? _c : "Failed to fetch the assistant response."
+          (_c = await response.text()) != null
+            ? _c
+            : "Failed to fetch the assistant response."
         );
       }
       if (response.body == null) {
@@ -539,8 +614,8 @@ function useAssistant({
               {
                 id: value.id,
                 role: value.role,
-                content: value.content[0].text.value
-              }
+                content: value.content[0].text.value,
+              },
             ]);
             break;
           }
@@ -562,8 +637,8 @@ function useAssistant({
                 id: (_d = value.id) != null ? _d : generateId(),
                 role: "data",
                 content: "",
-                data: value.data
-              }
+                data: value.data,
+              },
             ]);
             break;
           }
@@ -586,7 +661,13 @@ function useAssistant({
         }
       }
     } catch (err) {
-      if (isAbortError(error) && ((_e = abortController == null ? void 0 : abortController.signal) == null ? void 0 : _e.aborted)) {
+      if (
+        isAbortError(error) &&
+        ((_e = abortController == null ? void 0 : abortController.signal) ==
+        null
+          ? void 0
+          : _e.aborted)
+      ) {
         abortController = null;
         return;
       }
@@ -610,10 +691,11 @@ function useAssistant({
   }
   async function submitMessage(event, requestOptions) {
     var _a;
-    (_a = event == null ? void 0 : event.preventDefault) == null ? void 0 : _a.call(event);
+    (_a = event == null ? void 0 : event.preventDefault) == null
+      ? void 0
+      : _a.call(event);
     const inputValue = get3(input);
-    if (!inputValue)
-      return;
+    if (!inputValue) return;
     await append({ role: "user", content: inputValue }, requestOptions);
   }
   return {
@@ -625,12 +707,8 @@ function useAssistant({
     submitMessage,
     status,
     setMessages,
-    stop
+    stop,
   };
 }
-export {
-  useAssistant,
-  useChat,
-  useCompletion
-};
+export { useAssistant, useChat, useCompletion };
 //# sourceMappingURL=index.mjs.map
