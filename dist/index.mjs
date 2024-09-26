@@ -394,7 +394,7 @@ function useChat({
             ...message,
             toolInvocations: message.toolInvocations.map((toolInvocation) =>
               toolInvocation.toolCallId === toolCallId
-                ? { ...toolInvocation, result }
+                ? { ...toolInvocation, result, status: "result" }
                 : toolInvocation
             ),
           }
