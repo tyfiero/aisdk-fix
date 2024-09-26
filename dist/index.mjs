@@ -379,7 +379,10 @@ function useChat({
       return $isSWRLoading || $loading;
     }
   );
-  const addToolResult = ({ toolCallId, result, options }) => {
+  const addToolResult = (
+    { toolCallId, result, options },
+    sendRequest = true
+  ) => {
     var _a;
     const messagesSnapshot = (_a = get(messages)) != null ? _a : [];
     const updatedMessages = messagesSnapshot.map((message, index, arr) =>
@@ -399,7 +402,7 @@ function useChat({
     );
     messages.set(updatedMessages);
     const lastMessage = updatedMessages[updatedMessages.length - 1];
-    if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
+    if (isAssistantMessageWithCompletedToolCalls(lastMessage) && sendRequest) {
       triggerRequest({ messages: updatedMessages, ...options });
     }
   };
