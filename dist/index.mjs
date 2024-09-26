@@ -464,9 +464,13 @@ function useCompletion({
   const streamData = writable2(void 0);
   const loading = writable2(false);
   data.set(initialCompletion);
+  console.log(
+    "🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓🍓"
+  );
+
   const mutate = (data2) => {
     store2[key] = data2;
-    return originalMutate(data2);
+    return originalMutate(data2, { revalidate: false });
   };
   const completion = data;
   const error = writable2(void 0);
